@@ -3,7 +3,8 @@ import App from './App.vue'
 import Axios from 'axios'
 
 const axios = Axios.create({
-  baseURL: 'https://cristarra-registration.000webhostapp.com/',
+  // baseURL: 'https://cristarra-registration.000webhostapp.com/', // ohter host
+  baseURL: 'http://localhost/registration-backend-php/', // local host
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'

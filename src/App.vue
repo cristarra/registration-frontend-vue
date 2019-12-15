@@ -1,16 +1,25 @@
 <template>
   <div id="app">
-    <Registration/>
+    <Registration v-show="showRegisterPage"/>
+    <Login v-show="showLoginPage"/>
   </div>
 </template>
 
 <script>
 import Registration from './components/Registration.vue'
+import Login from './components/Login.vue'
 
 export default {
   name: 'app',
+  data () {
+    return {
+      showRegisterPage: true,
+      showLoginPage:false
+    }
+  },
   components: {
-    Registration
+    Registration,
+    Login
   }
 }
 </script>

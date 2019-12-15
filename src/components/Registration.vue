@@ -1,68 +1,135 @@
 <template>
   <div>
-    <div class="registration">
+    <div class="registration" :disabled="isDisabledForm">
       <h1>Registration</h1>
+      <p v-show="errorMsg" class="error-msg">{{errorMsg}}</p>
       <div class="input-row tooltip">
-        <input class="input-text" type="tel" placeholder="Mobile Number" required>
-        <div class="top">
-          <p>Please enter valid Indonesian phone number</p>
+        <input class="input-text" type="tel" placeholder="Mobile Number" required v-model="phoneNumber" @input="checkPhoneNumberFormat">
+        <div class="top" v-show="isPhoneNumberError">
+          <p>{{phoneNumberErrorMsg}}</p>
+          <i></i>
+        </div>
+      </div>
+      <div class="input-row tooltip">
+        <input class="input-text" type="text" placeholder="First Name" required v-model="firstName" @input="checkFirstNameFormat">
+        <div class="top" v-show="isFirstNameError">
+          <p>{{firstNameErrorMsg}}</p>
+          <i></i>
+        </div>
+      </div>
+      <div class="input-row tooltip">
+        <input class="input-text" type="text" placeholder="Last Name" required v-model="lastName" @input="checkLastNameFormat">
+        <div class="top" v-show="isLastNameError">
+          <p>{{lastNameErrorMsg}}</p>
           <i></i>
         </div>
       </div>
       <div class="input-row">
-        <input class="input-text" type="text" placeholder="First Name" required>
-      </div>
-      <div class="input-row">
-        <input class="input-text" type="text" placeholder="Last Name" required>
-      </div>
-      <div class="input-row">
         <label class="select-label">Date of Birth</label>
         <div>
-          <select>
+          <select v-model="monthOfBirth">
             <option value="00">Month</option>
+            <option v-for="month in month" :value="month" v-bind:key="month">{{ month }}</option>
           </select>
-          <select>
+          <select v-model="dateOfBirth">
             <option value="00">Date</option>
+            <option v-for="date in date" :value="date" v-bind:key="date">{{ date }}</option>
           </select>
-          <select>
+          <select v-model="yearOfBirth">
             <option value="0000">Year</option>
+            <option v-for="year in years" :value="year" v-bind:key="year">{{ year }}</option>
           </select>
         </div>
       </div>
       <div class="input-row">
-        <input type="radio"  class="input-radio" name="gender" id="male" value="male"/>
+        <input type="radio"  class="input-radio" name="gender" id="male" value="male" v-model="gender" @click="(gender=='male'?gender='':gender='male')"/>
         <label for="male">Male</label>
 
-        <input type="radio" class="input-radio" name="gender" id="female" value="female"/>
+        <input type="radio" class="input-radio" name="gender" id="female" value="female" v-model="gender" @click="(gender=='female'?gender='':gender='female')"/>
         <label for="female">Female</label>
       </div>
-      <div class="input-row">
-        <input class="input-text" type="email" placeholder="Email" required>
+      <div class="input-row tooltip">
+        <input class="input-text" type="email" placeholder="Email" required v-model="email"  @input="checkEmailFormat">
+        <div class="top" v-show="isEmailError">
+          <p>{{emailErrorMsg}}</p>
+          <i></i>
+        </div>
       </div>
       <div class="input-row">
-        <button class="input-button">Register</button>
+        <button class="input-button" @click="registerButtonClicked">Register</button>
       </div>
     </div>
     <div class="login" v-show="isLoginActive">
       <div class="input-row">
-        <button class="input-button">Login</button>
+        <button class="input-button" @click="goToLoginPage">Login</button>
       </div>
     </div>
-    <div class="footer">
+    <div class="footer" v-show="isFooterActive">
       Footer
     </div>
   </div>
 </template>
 
 <script>
+import _ from 'lodash'
+
 export default {
   name: 'Registration',
   data () {
     return {
-      isLoginActive:false
+      isLoginActive:false,
+      phoneNumber:'',
+      firstName:'',
+      lastName:'',
+      dateOfBirth:'00',
+      monthOfBirth:'00',
+      yearOfBirth:'0000',
+      gender:'',
+      email:'',
+      isPhoneNumberError:false,
+      phoneNumberErrorMsg:'',
+      isFirstNameError: false,
+      firstNameErrorMsg:'',
+      isLastNameError: false,
+      lastNameErrorMsg:'',
+      isEmailError: false,
+      emailErrorMsg:'',
+      errorMsg:'',
+      isFooterActive:true,
+      isDisabledForm:false
     }
   },
   methods: {
+    doRegister(){
+      let param = {
+        email : this.email,
+        phone_number: this.phoneNumber,
+        first_name: this.firstName,
+        last_name: this.lastName,
+        gender: this.gender,
+        date_of_birth: this.yearOfBirth+'-'+this.monthOfBirth+'-'+this.dateOfBirth
+      }
+
+      let options = {
+        url: 'user_add/',
+        method: 'POST',
+        data: new URLSearchParams(param).toString()
+      };
+
+      this.$http(options).then(response => {
+        if(response.data.status && response.data.status === "SUCCESS") {
+          if (response.data.data && response.data.data.result) {
+            this.isLoginActive = true
+            this.isFooterActive = false
+          }else{
+            this.errorMsg = 'Unable to register: ' + response.data.data.sql_warning
+            this.enableForm()
+          }
+        }
+      }).catch((error)=>{
+        alert(JSON.stringify(error))
+      })
+    },
     checkEmail: function(email){
 
       let param = {
@@ -76,7 +143,12 @@ export default {
       };
 
       this.$http(options).then(response => {
-                alert(JSON.stringify(response.data))
+              if(response.data.status && response.data.status === "SUCCESS") {
+                  if (response.data.data && response.data.data.email_count && response.data.data.email_count>0 && !this.isDisabledForm) {
+                    this.isEmailError = true
+                    this.emailErrorMsg = 'This email is already registered'
+                  }
+                }
               }).catch((error)=>{
                 alert(JSON.stringify(error))
               })
@@ -93,10 +165,108 @@ export default {
       };
 
       this.$http(options).then(response => {
-        alert(JSON.stringify(response.data))
+        if(response.data.status && response.data.status === "SUCCESS") {
+          if (response.data.data && response.data.data.phone_number_count && response.data.data.phone_number_count>0 && !this.isDisabledForm) {
+            this.isPhoneNumberError = true
+            this.phoneNumberErrorMsg = 'This phone number is already registered'
+          }
+        }
       }).catch((error)=>{
         alert(JSON.stringify(error))
       })
+    },
+    registerButtonClicked: function() {
+      if (this.phoneNumber.length>0 && this.email.length>0 & this.firstName.length>0 && this.lastName.length>0
+      && !this.isPhoneNumberError && !this.isEmailError && !this.isFirstNameError && !this.isLastNameError) {
+        this.disableForm()
+        this.doRegister()
+      } else {
+        this.errorMsg = 'Double check the registration form correctly'
+        this.checkPhoneNumberFormat()
+        this.checkEmailFormat()
+        this.checkFirstNameFormat()
+        this.checkLastNameFormat()
+        this.enableForm()
+      }
+    },
+    checkPhoneNumberFormat: _.debounce(function () {
+      if(this.phoneNumber.substring(0, 3)!=='+62' || this.phoneNumber.length<6) {
+        this.isPhoneNumberError = true
+        this.phoneNumberErrorMsg = 'Please enter valid Indonesian phone number'
+      } else {
+        this.checkPhoneNumber(this.phoneNumber)
+      }
+    }, 1000),
+    checkEmailFormat: _.debounce(function () {
+      if (!this.validateEmail(this.email)) {
+        this.isEmailError = true
+        this.emailErrorMsg = 'Please enter valid email address'
+      } else {
+        this.checkEmail(this.email)
+      }
+    }, 500),
+    checkFirstNameFormat: _.debounce(function () {
+      if (this.firstName.length<2) {
+        this.isFirstNameError = true
+        this.firstNameErrorMsg = 'First name must contain at least two characters'
+      }
+    }, 1000),
+    checkLastNameFormat: _.debounce(function () {
+      if (this.lastName.length<2) {
+        this.isLastNameError = true
+        this.lastNameErrorMsg = 'Last name must contain at least two characters'
+      }
+    }, 1000),
+    validateEmail: function (email) {
+      // eslint-disable-next-line no-useless-escape
+      let re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      return re.test(email)
+    },
+    disableForm: function(){
+      this.isDisabledForm=true
+    },
+    enableForm: function(){
+      this.isDisabledForm=false
+    },
+    goToLoginPage: function(){
+      this.$parent.showRegisterPage = false
+      this.$parent.showLoginPage = true
+    }
+  },
+  computed : {
+    years () {
+      const year = new Date().getFullYear()
+      return Array.from({length: year - 1900}, (value, index) => 1901 + index)
+    },
+    month () {
+      return Array.from({length: 13 - 1}, (value, index) => 1 + index)
+    },
+    date () {
+      return Array.from({length: 32 - 1}, (value, index) => 1 + index)
+    }
+  },
+  watch : {
+    phoneNumber : function (phoneNumber) {
+      this.errorMsg = ''
+      this.isPhoneNumberError = false
+      this.phoneNumber = phoneNumber.replace(/[^0-9]/g, '').replace(/(\..*)\./g, '$1')
+      if (this.phoneNumber.substring(0, 1) !== '+') {
+          this.phoneNumber = '+'+this.phoneNumber
+      }
+    },
+    email : function () {
+      this.errorMsg = ''
+      this.isEmailError = false
+    },
+    firstName: function (firstName) {
+      this.errorMsg = ''
+      this.isFirstNameError = false
+      this.firstName = firstName.replace(/[^A-Za-z ]/g, '').replace(/(\..*)\./g, '$1')
+    },
+    lastName: function (lastName) {
+      this.errorMsg = ''
+      this.isLastNameError = false
+      this.lastName = lastName.replace(/[^A-Za-z ]/g, '').replace(/(\..*)\./g, '$1')
     }
   },
   created () {
@@ -303,5 +473,14 @@ select{
   font-size: 28px;
   color: #fff;
   background: #9D3AB1;
+}
+.error-msg{
+  font-size: 11px;
+  color: #ED4134;
+}
+div[disabled]
+{
+  pointer-events: none;
+  opacity: 0.4;
 }
 </style>
