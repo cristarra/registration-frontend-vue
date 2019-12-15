@@ -28,6 +28,9 @@ npm run test
 npm run lint
 ```
 
+### Setting Base URL
+Change `baseURL: 'http://localhost/registration-backend-php/'` on [main.js](https://github.com/cristarra/registration-frontend-vue/blob/master/src/main.js)
+
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
 >>>>>>> init
